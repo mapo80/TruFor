@@ -72,23 +72,10 @@ PYTHONPATH=. python scripts/export_to_onnx.py --output onnx_models
 ```
 
 The script generates `onnx_models/noiseprint_pp.onnx` (included in the
-repository) and `onnx_models/mit_b2.onnx` (≈150 MB, ignored by git).
-
-To share the large `mit_b2.onnx` file you can upload it to Cloudinary
-and distribute the returned link. Set your Cloudinary cloud name and
-unsigned upload preset as environment variables and run:
-
-```bash
-export CLOUD_NAME=<your_cloud_name>
-export CLOUDINARY_UPLOAD_PRESET=<your_unsigned_upload_preset>
-curl -X POST "https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload" \
-  -F "file=@onnx_models/mit_b2.onnx" \
-  -F "upload_preset=${CLOUDINARY_UPLOAD_PRESET}"
-```
-
-The response contains a `secure_url` field that can be shared. Ensure
-your preset exists in your Cloudinary account; otherwise the API returns
-`Upload preset not found`.
+repository) and `onnx_models/mit_b2.onnx` (≈150 MB). Because of its size,
+`mit_b2.onnx` is stored in this repository as multiple chunks; see the
+`ONNX split/merge` section below for instructions on rebuilding the full
+file.
 
 ## ONNX vs. PyTorch comparison
 
@@ -122,11 +109,37 @@ Running on all 50 images yields the following average absolute errors:
 | Noiseprint++ | 2.63 × 10⁻⁵ |
 | mit_b2       | 3.74 |
 
-## onnx split/merge
+## ONNX split/merge
 
+The helper script `onnx_chunk.sh` splits a large ONNX file into smaller
+chunks so it can be tracked by git and later reassembled when needed.
+
+Make the script executable:
+
+```bash
 chmod +x onnx_chunk.sh
+```
+
+### Split
+
+Split the original model into multiple files (e.g., `onnx_models/mit_b2_00`,
+`onnx_models/mit_b2_01`, ...):
+
+```bash
 ./onnx_chunk.sh split onnx_models/mit_b2.onnx onnx_models/mit_b2
+```
+
+Only commit the generated chunk files to the repository.
+
+### Merge
+
+Recreate the full `mit_b2.onnx` file from the chunks:
+
+```bash
 ./onnx_chunk.sh merge onnx_models/mit_b2 onnx_models/mit_b2.onnx
+```
+
+Use the merged file locally and avoid committing it back to the repository.
 
 ## License
 
