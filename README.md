@@ -122,7 +122,11 @@ Running on all 50 images yields the following average absolute errors:
 | Noiseprint++ | 2.63 × 10⁻⁵ |
 | mit_b2       | 3.74 |
 
+## onnx split/merge
 
+chmod +x onnx_chunk.sh
+./onnx_chunk.sh split onnx_models/mit_b2.onnx onnx_models/mit_b2
+./onnx_chunk.sh merge onnx_models/mit_b2 onnx_models/mit_b2.onnx
 
 ## License
 
