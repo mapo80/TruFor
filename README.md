@@ -43,6 +43,86 @@ Follow the instructions in the README.md in the `TruFor_train_test` folder.
 
 You can download the CocoGlide dataset [here](https://www.grip.unina.it/download/prog/TruFor/CocoGlide.zip).
 
+### Sample subset
+
+A subset of 50 images (25 real and 25 fake) from CocoGlide is provided in
+`sample_dataset/` for quick tests. To recreate it from the full dataset:
+
+```bash
+wget https://www.grip.unina.it/download/prog/TruFor/CocoGlide.zip
+unzip CocoGlide.zip
+mkdir -p sample_dataset/real sample_dataset/fake
+ls CocoGlide/real | head -n 25 | xargs -I{} cp CocoGlide/real/{} sample_dataset/real/
+ls CocoGlide/fake | head -n 25 | xargs -I{} cp CocoGlide/fake/{} sample_dataset/fake/
+```
+
+## ONNX conversion
+
+Install the required packages (CPU versions of PyTorch and torchvision are
+recommended):
+
+```bash
+pip install --index-url https://download.pytorch.org/whl/cpu -r onnx_requirements.txt
+```
+
+Export the pretrained models to ONNX:
+
+```bash
+PYTHONPATH=. python scripts/export_to_onnx.py --output onnx_models
+```
+
+The script generates `onnx_models/noiseprint_pp.onnx` (included in the
+repository) and `onnx_models/mit_b2.onnx` (≈150 MB, ignored by git).
+
+To share the large `mit_b2.onnx` file you can upload it to Cloudinary
+and distribute the returned link. Set your Cloudinary cloud name and
+unsigned upload preset as environment variables and run:
+
+```bash
+export CLOUD_NAME=<your_cloud_name>
+export CLOUDINARY_UPLOAD_PRESET=<your_unsigned_upload_preset>
+curl -X POST "https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload" \
+  -F "file=@onnx_models/mit_b2.onnx" \
+  -F "upload_preset=${CLOUDINARY_UPLOAD_PRESET}"
+```
+
+The response contains a `secure_url` field that can be shared. Ensure
+your preset exists in your Cloudinary account; otherwise the API returns
+`Upload preset not found`.
+
+## ONNX vs. PyTorch comparison
+
+The script `scripts/test_onnx_models.py` compares the outputs of the
+ONNX models with the original PyTorch implementations on the sample
+subset. It prints per-image mean absolute errors and summary statistics.
+For a faster run you can limit the number of processed images:
+
+```bash
+PYTHONPATH=. python scripts/test_onnx_models.py --max-images 5
+```
+
+Example output on the first five images:
+
+```
+image   noiseprint_mae  mit_b2_mae
+glide_inpainting_val2017_100582_up.png  2.703454e-05    3.824630e+00
+glide_inpainting_val2017_101762_up.png  2.865557e-05    3.819625e+00
+glide_inpainting_val2017_10363_up.png   2.555746e-05    3.817635e+00
+glide_inpainting_val2017_104198_up.png  5.236697e-05    3.835972e+00
+glide_inpainting_val2017_104612_up.png  2.349462e-05    3.760577e+00
+
+Noiseprint++ MAE: 3.142183e-05 (std 1.06e-05, max 5.24e-05)
+mit_b2 MAE: 3.811688e+00 (std 2.63e-02, max 3.84e+00)
+```
+
+Running on all 50 images yields the following average absolute errors:
+
+| Model        | MAE |
+|--------------|------------------|
+| Noiseprint++ | 2.63 × 10⁻⁵ |
+| mit_b2       | 3.74 |
+
+
 
 ## License
 
