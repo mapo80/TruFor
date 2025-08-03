@@ -109,6 +109,62 @@ Running on all 50 images yields the following average absolute errors:
 | Noiseprint++ | 2.63 × 10⁻⁵ |
 | mit_b2       | 3.74 |
 
+## TruFor.Sdk (.NET 9)
+
+The repository includes a simple .NET 9 SDK that performs inference with
+the ONNX models using [SkiaSharp](https://github.com/mono/SkiaSharp) for
+image loading and [OnnxRuntime](https://onnxruntime.ai/) for model
+execution.
+
+Install the required .NET version using the provided script:
+
+```bash
+chmod +x dotnet-install.sh
+./dotnet-install.sh -c 9.0
+```
+
+Copy the ONNX models into `TruFor.Sdk/models` so they are available at
+runtime:
+
+```bash
+mkdir -p TruFor.Sdk/models
+cp onnx_models/noiseprint_pp.onnx TruFor.Sdk/models/
+./onnx_chunk.sh merge onnx_models/mit_b2 TruFor.Sdk/models/mit_b2.onnx
+```
+
+The SDK looks for these files in its `models` directory and does not
+perform any merging at runtime.
+
+Build the SDK and the sample console application:
+
+```bash
+~/.dotnet/dotnet build TruFor.Sdk/TruFor.Sdk.csproj
+~/.dotnet/dotnet build TruFor.Sdk.Sample/TruFor.Sdk.Sample.csproj
+```
+
+Run inference on an image; the sample app writes intermediate results as
+JSON files:
+
+```bash
+~/.dotnet/dotnet run --project TruFor.Sdk.Sample/TruFor.Sdk.Sample.csproj \
+    sample_dataset/real/airplane_139871.png dotnet_out
+```
+
+### Comparison with PyTorch and ONNX
+
+For the image above we compared the outputs of the SDK with the original
+PyTorch models and with ONNXRuntime (Python). The mean absolute error
+(MAE) shows that the .NET implementation matches the ONNX results while
+deviating from the PyTorch outputs by the same amount:
+
+| Output | .NET vs PyTorch MAE | .NET vs ONNX MAE |
+|-------|--------------------:|-----------------:|
+| Noiseprint | 2.53 × 10⁻⁵ | 0 |
+| Seg0 | 3.89 | 7.4 × 10⁻⁴ |
+| Seg1 | 3.49 | 4.4 × 10⁻⁴ |
+| Seg2 | 3.77 | 2.9 × 10⁻⁴ |
+| Seg3 | 3.75 | 2.4 × 10⁻⁴ |
+
 ## ONNX split/merge
 
 The helper script `onnx_chunk.sh` splits a large ONNX file into smaller
